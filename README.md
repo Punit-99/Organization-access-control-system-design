@@ -17,7 +17,8 @@ A user can never hold a permission that their organization is not entitled to. T
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
+- [Node.js](https://nodejs.org/) (v22.13+ / LTS)
+- [pnpm](https://pnpm.io/) (v11+)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (running)
 
 ### Running the Application
@@ -29,22 +30,22 @@ A user can never hold a permission that their organization is not entitled to. T
 
 2. **Install dependencies**:
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Apply database migrations**:
    ```bash
-   npx prisma migrate dev
+   pnpm prisma migrate dev
    ```
 
 4. **Seed the database**:
    ```bash
-   npx prisma db seed
+   pnpm prisma db seed
    ```
 
 5. **Start the Next.js development server**:
    ```bash
-   npm run dev
+   pnpm dev
    ```
    Open [http://localhost:3000](http://localhost:3000) to view the console in your browser.
 
@@ -54,7 +55,7 @@ A user can never hold a permission that their organization is not entitled to. T
 
 To verify that the entitlement rule, cross-org guards, and idempotency logic are fully enforced:
 ```bash
-npm test
+pnpm test
 ```
 
 ---
@@ -89,3 +90,6 @@ npm test
 - **Cross-Organization Guard**: Administrators can only edit permissions for users belonging to their own organization. Any cross-org modification attempts trigger a `403 CROSS_ORG_GUARD_TRIGGERED` error.
 - **Security Bypass Sandbox**: The Admin UI features an "Exploit Sandbox" console allowing you to issue raw requests to force-grant unentitled features to test database and API security boundaries interactively.
 - **Dual Auth Extraction**: Supports session tokens in HTTP cookies for standard browser routing, and Bearer headers for automated testing.
+- **Vercel & Production Build Optimizations**: Configured `export const dynamic = 'force-dynamic'` on dynamic API GET routes (`/api/admin/audit-log`, `/api/admin/entitlements`, `/api/admin/users`, `/api/auth/me`, `/api/dashboard`) to prevent build-time static rendering bails and serverless connection issues.
+- **pnpm Workspace Build Authorization**: Built under secure pnpm v11 guidelines utilizing `pnpm-workspace.yaml`'s `allowBuilds` configuration to explicitly permit necessary post-install scripts (e.g. for `@prisma/client`, `@prisma/engines`, and `esbuild`).
+- **CI/CD Pipeline Integration**: GitHub Actions configuration (`ci.yml`) operates using Node.js v22 (LTS) and integrates pnpm setup with optimized caching (`cache: 'pnpm'`) for faster and more reliable runs.
