@@ -3,6 +3,8 @@ import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getEntitlementsForCategory } from '@/lib/entitlements';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   try {
     const payload = await requireAuth(req);
