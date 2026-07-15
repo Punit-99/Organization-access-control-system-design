@@ -1,0 +1,50 @@
+name: CI Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: punit
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: org_access_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run Prisma Migrations
+      env:
+        DATABASE_URL: postgresql://punit:password@localhost:5432/org_access_db
+      run: npx prisma migrate deploy
+
+    - name: Run Tests
+      env:
+        DATABASE_URL: postgresql://punit:password@localhost:5432/org_access_db
+        JWT_SECRET: testing_jwt_secret_token_signing_key_32_chars_long_minimum
+        JWT_REFRESH_SECRET: testing_jwt_refresh_secret_token_signing_key_32_chars_long_minimum
+      run: npm test
