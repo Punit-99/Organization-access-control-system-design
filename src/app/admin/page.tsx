@@ -23,6 +23,7 @@ interface OrgUser {
 interface EntitlementsResponse {
   category: string;
   entitlements: string[];
+  allFeatures: string[];
 }
 
 interface UserProfile {
@@ -53,6 +54,8 @@ export default function AdminPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [users, setUsers] = useState<OrgUser[]>([]);
   const [entitlements, setEntitlements] = useState<string[]>([]);
+  const [allFeatures, setAllFeatures] = useState<string[]>([]);
+  const [showAllFeatures, setShowAllFeatures] = useState<boolean>(false);
   const [category, setCategory] = useState<string>('');
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   
@@ -120,10 +123,15 @@ export default function AdminPage() {
           
           setUsers(usersData.users);
           setEntitlements(entitlementsData.entitlements);
+          const fetchedAllFeatures = entitlementsData.allFeatures || ALL_SYSTEM_FEATURES;
+          setAllFeatures(fetchedAllFeatures);
           setCategory(entitlementsData.category);
 
           if (usersData.users.length > 0) {
             setTestTargetUserId(usersData.users[0].id);
+          }
+          if (fetchedAllFeatures.length > 0) {
+            setTestFeature(fetchedAllFeatures[0]);
           }
 
           // Fetch the audit logs
@@ -332,15 +340,42 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
+            {/* Permission Visibility Radio Controls */}
+            <div className="flex items-center gap-6 mb-4 px-1">
+              <span className="text-xs font-semibold text-muted-foreground">Permission Visibility:</span>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-foreground select-none">
+                  <input
+                    type="radio"
+                    name="permission-visibility"
+                    checked={!showAllFeatures}
+                    onChange={() => setShowAllFeatures(false)}
+                    className="w-4 h-4 text-primary focus:ring-primary border-border bg-background accent-primary cursor-pointer"
+                  />
+                  <span>Show Entitled Only</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-foreground select-none">
+                  <input
+                    type="radio"
+                    name="permission-visibility"
+                    checked={showAllFeatures}
+                    onChange={() => setShowAllFeatures(true)}
+                    className="w-4 h-4 text-primary focus:ring-primary border-border bg-background accent-primary cursor-pointer"
+                  />
+                  <span>Show All Features (Including Hidden)</span>
+                </label>
+              </div>
+            </div>
+
             <div className="rounded-md border border-border overflow-hidden">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-muted-foreground">User Email</TableHead>
                     <TableHead className="text-muted-foreground">Role</TableHead>
-                    {entitlements.map((ent) => (
-                      <TableHead key={ent} className="text-center text-muted-foreground">
-                        {ent.replace('_', ' ')}
+                    {(showAllFeatures ? (allFeatures.length > 0 ? allFeatures : ALL_SYSTEM_FEATURES) : entitlements).map((ent) => (
+                      <TableHead key={ent} className="text-center text-muted-foreground whitespace-nowrap">
+                        {ent.replace(/_/g, ' ')}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -357,19 +392,79 @@ export default function AdminPage() {
                           {user.isAdmin ? 'Admin' : 'User'}
                         </span>
                       </TableCell>
-                      {entitlements.map((ent) => {
+                      {(showAllFeatures ? (allFeatures.length > 0 ? allFeatures : ALL_SYSTEM_FEATURES) : entitlements).map((ent) => {
                         const isGranted = user.permissions.some((p) => p.feature === ent);
                         const isWorking = submittingUser === user.id;
+                        const isEntitled = entitlements.includes(ent);
 
                         return (
                           <TableCell key={ent} className="text-center">
-                            <div className="flex items-center justify-center">
-                              <Switch
-                                checked={isGranted}
-                                disabled={isWorking}
-                                onCheckedChange={() => handleTogglePermission(user.id, ent, isGranted)}
-                                className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                              />
+                            <div className="flex items-center justify-center gap-3">
+                              {/* On Radio (Green) - Only render if feature is entitled */}
+                              {isEntitled && (
+                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                  <input
+                                    type="radio"
+                                    name={`perm-${user.id}-${ent}`}
+                                    checked={isGranted}
+                                    disabled={isWorking}
+                                    onChange={() => {
+                                      if (!isGranted) {
+                                        handleTogglePermission(user.id, ent, false);
+                                      }
+                                    }}
+                                    className={`w-4 h-4 border-border bg-background cursor-pointer disabled:cursor-not-allowed ${
+                                      isGranted 
+                                        ? 'text-emerald-500 focus:ring-emerald-400 accent-emerald-500 font-bold' 
+                                        : 'text-muted-foreground focus:ring-muted border-muted-foreground/30 accent-muted-foreground'
+                                    }`}
+                                  />
+                                  <span className={`text-xs transition-colors ${
+                                    isGranted 
+                                      ? 'text-emerald-600 dark:text-emerald-400 font-semibold' 
+                                      : 'text-muted-foreground'
+                                  }`}>
+                                    On
+                                  </span>
+                                </label>
+                              )}
+
+                              {/* Off Radio (Red) */}
+                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input
+                                  type="radio"
+                                  name={`perm-${user.id}-${ent}`}
+                                  checked={!isGranted}
+                                  disabled={isWorking || !isEntitled}
+                                  onChange={() => {
+                                    if (isGranted) {
+                                      handleTogglePermission(user.id, ent, true);
+                                    }
+                                  }}
+                                  className={`w-4 h-4 border-border bg-background cursor-pointer disabled:cursor-not-allowed ${
+                                    !isGranted 
+                                      ? 'text-rose-500 focus:ring-rose-400 accent-rose-500 font-bold' 
+                                      : 'text-muted-foreground focus:ring-muted border-muted-foreground/30 accent-muted-foreground'
+                                  }`}
+                                />
+                                <span className={`text-xs transition-colors ${
+                                  !isGranted 
+                                    ? 'text-rose-600 dark:text-rose-400 font-semibold' 
+                                    : 'text-muted-foreground'
+                                }`}>
+                                  Off
+                                </span>
+                              </label>
+
+                              {/* Unentitled indicator badge */}
+                              {!isEntitled && (
+                                <span 
+                                  className="ml-1 inline-flex items-center rounded bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 text-[9px] font-medium text-amber-800 dark:text-amber-400 ring-1 ring-inset ring-amber-600/20 dark:ring-amber-500/20" 
+                                  title="This feature is not entitled for this organization category."
+                                >
+                                  Unentitled
+                                </span>
+                              )}
                             </div>
                           </TableCell>
                         );
@@ -481,7 +576,7 @@ export default function AdminPage() {
                   value={testFeature}
                   onChange={(e) => setTestFeature(e.target.value)}
                 >
-                  {ALL_SYSTEM_FEATURES.map((f) => {
+                  {(allFeatures.length > 0 ? allFeatures : ALL_SYSTEM_FEATURES).map((f) => {
                     const isEnt = entitlements.includes(f);
                     return (
                       <option key={f} value={f}>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getEntitlementsForCategory } from '@/lib/entitlements';
+import { Feature } from '@prisma/client';
 
 export async function GET(req: Request) {
   try {
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       category: org.category,
       entitlements,
+      allFeatures: Object.values(Feature),
     });
   } catch (error: any) {
     if (error.message === 'UNAUTHORIZED') {
