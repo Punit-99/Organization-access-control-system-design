@@ -19,14 +19,18 @@ A user can never hold a permission that their organization is not entitled to. T
 
 - [Node.js](https://nodejs.org/) (v22.13+ / LTS)
 - [pnpm](https://pnpm.io/) (v11+)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (running)
+- A PostgreSQL Database (e.g. [Neon](https://neon.tech/) cloud database, or local Docker instance)
 
 ### Running the Application
 
-1. **Start the PostgreSQL database container**:
-   ```bash
-   docker compose up -d
+1. **Configure Environment Variables**:
+   Create a `.env` file in the root directory and configure your database connection and secrets:
+   ```env
+   DATABASE_URL="postgresql://..." # Your Neon connection URL or local instance URL
+   JWT_SECRET="your-jwt-signing-secret"
+   JWT_REFRESH_SECRET="your-jwt-refresh-signing-secret"
    ```
+   *(If using the local database option, you can start the PostgreSQL container via `docker compose up -d`).*
 
 2. **Install dependencies**:
    ```bash
