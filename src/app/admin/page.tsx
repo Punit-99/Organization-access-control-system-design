@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -71,7 +71,7 @@ export default function AdminPage() {
   const [testLoading, setTestLoading] = useState(false);
 
   // Fetch helper with access token refresh mechanism
-  const fetchWithRefresh = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const fetchWithRefresh = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
     let res = await fetch(url, options);
     if (res.status === 401) {
       const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
@@ -80,9 +80,9 @@ export default function AdminPage() {
       }
     }
     return res;
-  };
+  }, []);
 
-  const fetchAuditLogs = async () => {
+  const fetchAuditLogs = useCallback(async () => {
     try {
       const res = await fetchWithRefresh('/api/admin/audit-log');
       if (res.ok) {
@@ -92,7 +92,7 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Error fetching audit logs:', err);
     }
-  };
+  }, [fetchWithRefresh]);
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -138,7 +138,7 @@ export default function AdminPage() {
     };
 
     fetchAdminData();
-  }, [router]);
+  }, [router, fetchWithRefresh, fetchAuditLogs]);
 
   const handleLogout = async () => {
     try {
