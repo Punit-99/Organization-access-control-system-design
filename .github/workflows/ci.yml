@@ -37,10 +37,12 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Run Prisma Migrations
+    - name: Run Prisma Migrations & Seed Database
       env:
         DATABASE_URL: postgresql://punit:password@localhost:5432/org_access_db
-      run: npx prisma migrate deploy
+      run: |
+        npx prisma migrate deploy
+        npx prisma db seed
 
     - name: Run Tests
       env:
